@@ -150,7 +150,7 @@ export default function Home() {
       });
       if (response.ok) {
         setNuevoNombrePlato('');
-        setIngredientesPlato([{ Jack: '', nombre: '', cantidad: 1, unidad: 'kg' }]);
+        setIngredientesPlato([{ nombre: '', cantidad: 1, unidad: 'kg' }]);
         setModalAbierto(false);
         await cargarDatosConfig();
       }
