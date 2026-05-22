@@ -265,27 +265,63 @@ export default function Home() {
           {/* SECCIÓN 1: PLANIFICADOR */}
           <div className={`space-y-6 ${tabActiva === 'menu' ? 'block' : 'hidden'}`}>
             
-            {/* Panel de Período */}
-            <section className="bg-white rounded-3xl p-6 border border-slate-100 shadow-xs">
+            {/* Panel de Período Optimizado para iPhone */}
+            <section className="bg-white rounded-3xl p-5 border border-slate-100 shadow-xs">
               <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Configuración del Período</h2>
-              <div className="grid grid-cols-3 gap-3 items-center">
-                <div className="col-span-2 grid grid-cols-2 gap-2">
-                  <input 
-                    type="date" value={fechaInicio} onChange={(e) => setFechaInicio(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-700 focus:outline-none focus:border-emerald-500"
-                  />
-                  <input 
-                    type="date" value={fechaFin} onChange={(e) => setFechaFin(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-semibold text-slate-700 focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-                <div>
-                  <div className="relative">
+              
+              <div className="space-y-4">
+                {/* Fila 1: Inputs de Fechas con ancho completo para no apretarse */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Desde</label>
                     <input 
-                      type="number" value={personas} onChange={(e) => setPersonas(Math.max(1, Number(e.target.value)))}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-3 pr-8 py-2.5 text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-500 text-center"
+                      type="date" 
+                      value={fechaInicio} 
+                      onChange={(e) => setFechaInicio(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-500 appearance-none min-h-[44px]"
                     />
-                    <span className="absolute right-2.5 top-3 text-[10px] font-bold text-slate-400 pointer-events-none">Pers</span>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Hasta</label>
+                    <input 
+                      type="date" 
+                      value={fechaFin} 
+                      onChange={(e) => setFechaFin(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-3 text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-500 appearance-none min-h-[44px]"
+                    />
+                  </div>
+                </div>
+
+                {/* Fila 2: Control de Personas Táctil (Stepper) */}
+                <div className="flex items-center justify-between bg-slate-50 border border-slate-200/70 p-3 rounded-2xl min-h-[52px]">
+                  <div>
+                    <p className="text-xs font-black text-slate-800">Comensales</p>
+                    <p className="text-[10px] text-slate-400 font-medium">Recetas calculadas para:</p>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    {/* Botón Disminuir */}
+                    <button
+                      type="button"
+                      onClick={() => setPersonas(Math.max(1, personas - 1))}
+                      className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center font-black text-base text-slate-700 shadow-3xs active:bg-slate-100 active:scale-90 transition-all select-none"
+                    >
+                      －
+                    </button>
+                    
+                    {/* Visualizador del número */}
+                    <span className="w-8 text-center text-sm font-black text-slate-900">
+                      {personas}
+                    </span>
+                    
+                    {/* Botón Aumentar */}
+                    <button
+                      type="button"
+                      onClick={() => setPersonas(personas + 1)}
+                      className="w-10 h-10 bg-white border border-slate-200 rounded-xl flex items-center justify-center font-black text-base text-slate-700 shadow-3xs active:bg-slate-100 active:scale-90 transition-all select-none"
+                    >
+                      ＋
+                    </button>
                   </div>
                 </div>
               </div>
