@@ -28,6 +28,11 @@ interface IngredienteForm {
   unidad: string;
 }
 
+interface UnidadMedida {
+  nombre: string;
+  abreviatura: string;
+}
+
 export default function Home() {
   // Pestaña activa en móvil ('menu' o 'compras')
   const [tabActiva, setTabActiva] = useState<'menu' | 'compras'>('menu');
@@ -59,6 +64,13 @@ export default function Home() {
   const [ingredientesEditar, setIngredientesEditar] = useState<IngredienteForm[]>([]);
   const [loadingDetalle, setLoadingDetalle] = useState(false);
 
+  // Estados dinámicos para la gestión autónoma de unidades
+  const [unidades, setUnidades] = useState<UnidadMedida[]>([]);
+  const [nuevaUnidadNombre, setNuevaUnidadNombre] = useState('');
+  const [nuevaUnidadAbrev, setNuevaUnidadAbrev] = useState('');
+  const [creandoUnidad, setCreandoUnidad] = useState(false);
+  const [mostrarFormUnidad, setMostrarFormUnidad] = useState(false);
+
   const generarDiasRango = () => {
     const dias: string[] = [];
     const fechaActual = new Date(fechaInicio + 'T00:00:00');
@@ -80,6 +92,16 @@ export default function Home() {
       console.error(error);
     } finally {
       setLoadingFeria(false);
+    }
+  };
+
+  const cargarUnidades = async () => {
+    try {
+      const response = await fetch('/api/unidades');
+      const data = await response.json();
+      if (Array.isArray(data)) setUnidades(data);
+    } catch (error) {
+      console.error('Error cargando unidades:', error);
     }
   };
 
@@ -105,6 +127,7 @@ export default function Home() {
   useEffect(() => {
     cargarListaFeria();
     cargarDatosConfig();
+    cargarUnidades();
   }, [fechaInicio, fechaFin]);
 
   const handleCambioPlato = async (fecha: string, platoIdStr: string) => {
@@ -126,7 +149,9 @@ export default function Home() {
   };
 
   const agregarFilaIngrediente = () => {
-    setIngredientesPlato([...ingredientesPlato, { nombre: '', cantidad: 1, unidad: 'kg' }]);
+    // Toma la primera unidad disponible como valor por defecto para evitar campos vacíos
+    const unidadPorDefecto = unidades.length > 0 ? unidades[0].nombre : 'kg';
+    setIngredientesPlato([...ingredientesPlato, { nombre: '', cantidad: 1, unidad: unidadPorDefecto }]);
   };
 
   const handleIngredienteChange = (index: number, campo: string, valor: any) => {
@@ -150,7 +175,8 @@ export default function Home() {
       });
       if (response.ok) {
         setNuevoNombrePlato('');
-        setIngredientesPlato([{ nombre: '', cantidad: 1, unidad: 'kg' }]);
+        const unidadPorDefecto = unidades.length > 0 ? unidades[0].nombre : 'kg';
+        setIngredientesPlato([{ nombre: '', cantidad: 1, unidad: unidadPorDefecto }]);
         setModalAbierto(false);
         await cargarDatosConfig();
       }
@@ -158,6 +184,28 @@ export default function Home() {
       console.error(error);
     } finally {
       setGuardandoPlato(false);
+    }
+  };
+
+  const handleCrearUnidad = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCreandoUnidad(true);
+    try {
+      const response = await fetch('/api/unidades', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nombre: nuevaUnidadNombre, abreviatura: nuevaUnidadAbrev })
+      });
+      if (response.ok) {
+        setNuevaUnidadNombre('');
+        setNuevaUnidadAbrev('');
+        setMostrarFormUnidad(false);
+        await cargarUnidades();
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setCreandoUnidad(false);
     }
   };
 
@@ -270,7 +318,6 @@ export default function Home() {
               <h2 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Configuración del Período</h2>
               
               <div className="space-y-4">
-                {/* Fila 1: Inputs de Fechas con ancho completo para no apretarse */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Desde</label>
@@ -292,7 +339,6 @@ export default function Home() {
                   </div>
                 </div>
 
-                {/* Fila 2: Control de Personas Táctil (Stepper) */}
                 <div className="flex items-center justify-between bg-slate-50 border border-slate-200/70 p-3 rounded-2xl min-h-[52px]">
                   <div>
                     <p className="text-xs font-black text-slate-800">Comensales</p>
@@ -300,7 +346,6 @@ export default function Home() {
                   </div>
                   
                   <div className="flex items-center gap-3">
-                    {/* Botón Disminuir */}
                     <button
                       type="button"
                       onClick={() => setPersonas(Math.max(1, personas - 1))}
@@ -308,13 +353,9 @@ export default function Home() {
                     >
                       －
                     </button>
-                    
-                    {/* Visualizador del número */}
                     <span className="w-8 text-center text-sm font-black text-slate-900">
                       {personas}
                     </span>
-                    
-                    {/* Botón Aumentar */}
                     <button
                       type="button"
                       onClick={() => setPersonas(personas + 1)}
@@ -393,6 +434,47 @@ export default function Home() {
                   </button>
                 ))}
               </div>
+
+              {/* Formulario Dinámico para Crear Unidades de Medida desde la App */}
+              <div className="mt-4 pt-4 border-t border-slate-100">
+                {!mostrarFormUnidad ? (
+                  <button
+                    type="button"
+                    onClick={() => setMostrarFormUnidad(true)}
+                    className="text-emerald-600 text-xs font-bold hover:underline flex items-center gap-1"
+                  >
+                    ⚙️ Gestionar Unidades de Medida
+                  </button>
+                ) : (
+                  <form onSubmit={handleCrearUnidad} className="bg-slate-50 p-3 rounded-2xl space-y-2 mt-2 animate-fade-in">
+                    <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Nueva Unidad</p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text" required placeholder="Ej. lata" value={nuevaUnidadNombre}
+                        onChange={(e) => setNuevaUnidadNombre(e.target.value)}
+                        className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold"
+                      />
+                      <input
+                        type="text" required placeholder="Abrev (lt)" value={nuevaUnidadAbrev}
+                        onChange={(e) => setNuevaUnidadAbrev(e.target.value)}
+                        className="w-24 bg-white border border-slate-200 rounded-xl px-2 py-1.5 text-xs font-bold text-center"
+                      />
+                      <button
+                        type="submit" disabled={creandoUnidad}
+                        className="bg-slate-900 text-white px-3 rounded-xl text-xs font-bold active:scale-95 transition-all shadow-xs shrink-0"
+                      >
+                        {creandoUnidad ? '...' : '＋'}
+                      </button>
+                    </div>
+                    <button 
+                      type="button" onClick={() => setMostrarFormUnidad(false)}
+                      className="text-[10px] text-slate-400 font-bold hover:underline block pt-1"
+                    >
+                      Cancelar
+                    </button>
+                  </form>
+                )}
+              </div>
             </section>
           </div>
 
@@ -442,7 +524,6 @@ export default function Home() {
                             <span className="bg-emerald-50 text-emerald-700 text-xs font-black px-2.5 py-1 rounded-md">✓ Cubierto</span>
                           ) : (
                             <span className="bg-amber-50 text-amber-800 text-xs font-black px-3 py-1.5 rounded-xl border border-amber-100/50">
-                              {/* Corregido: Removido el fallback redundante a amountToBuy */}
                               {Number(item.cantidadAComprar).toFixed(2)} {item.unidad}
                             </span>
                           )}
@@ -490,8 +571,15 @@ export default function Home() {
                         onChange={(e) => handleIngredienteChange(index, 'cantidad', Number(e.target.value))}
                         className="w-16 bg-slate-50 border border-slate-200 rounded-xl px-2 py-2 text-xs text-center font-black"
                       />
-                      <select value={ing.unidad} onChange={(e) => handleIngredienteChange(index, 'unidad', e.target.value)} className="w-20 bg-slate-50 border border-slate-200 rounded-xl py-2 text-xs font-bold text-slate-600">
-                        <option value="kg">kg</option><option value="und">und</option><option value="litro">litro</option><option value="paquete">paq</option><option value="pieza">pz</option><option value="sol">sol</option>
+                      <select 
+                        value={ing.unidad} 
+                        onChange={(e) => handleIngredienteChange(index, 'unidad', e.target.value)} 
+                        className="w-20 bg-slate-50 border border-slate-200 rounded-xl py-2 text-xs font-bold text-slate-600 focus:outline-none focus:border-emerald-500"
+                      >
+                        {unidades.map((uni) => (
+                          <option key={uni.nombre} value={uni.nombre}>{uni.abreviatura}</option>
+                        ))}
+                        {unidades.length === 0 && <option value="kg">kg</option>}
                       </select>
                     </div>
                   ))}
@@ -532,7 +620,10 @@ export default function Home() {
                     <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider">Insumos Requeridos</label>
                     <button
                       type="button"
-                      onClick={() => setIngredientesEditar([...ingredientesEditar, { nombre: '', cantidad: 1, unidad: 'kg' }])}
+                      onClick={() => {
+                        const unidadDefecto = unidades.length > 0 ? unidades[0].nombre : 'kg';
+                        setIngredientesEditar([...ingredientesEditar, { nombre: '', cantidad: 1, unidad: unidadDefecto }]);
+                      }}
                       className="text-emerald-600 text-xs font-bold hover:underline"
                     >
                       ＋ Añadir fila
@@ -554,10 +645,12 @@ export default function Home() {
                         <select
                           value={ing.unidad}
                           onChange={(e) => { const n = [...ingredientesEditar]; n[index].unidad = e.target.value; setIngredientesEditar(n); }}
-                          className="w-20 bg-slate-50 border border-slate-200 rounded-xl py-2 text-xs font-bold text-slate-600"
+                          className="w-20 bg-slate-50 border border-slate-200 rounded-xl py-2 text-xs font-bold text-slate-600 focus:outline-none focus:border-emerald-500"
                         >
-                          {/* Corregido: Agregadas unidades locales faltantes para consistencia en la edición */}
-                          <option value="kg">kg</option><option value="und">und</option><option value="litro">litro</option><option value="paquete">paq</option><option value="pieza">pz</option><option value="sol">sol</option>
+                          {unidades.map((uni) => (
+                            <option key={uni.nombre} value={uni.nombre}>{uni.abreviatura}</option>
+                          ))}
+                          {unidades.length === 0 && <option value="kg">kg</option>}
                         </select>
                       </div>
                     ))}
