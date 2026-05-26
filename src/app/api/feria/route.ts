@@ -7,12 +7,14 @@ export async function GET(request: Request) {
     const fechaInicio = searchParams.get('inicio') || '2026-05-15';
     const fechaFin = searchParams.get('fin') || '2026-06-10';
 
+    // Modificamos la consulta para normalizar la cantidad dividiendo entre 5
+    // Fórmula: (Cantidad para 5 personas / 5) * Personas Reales
     const query = `
       SELECT 
           i.nombre AS ingrediente,
-          SUM(r.cantidad_base * p.nro_personas) AS totalNecesario,
+          SUM((r.cantidad_base / 5) * p.nro_personas) AS totalNecesario,
           i.stock_actual AS enDespensa,
-          GREATEST(0, SUM(r.cantidad_base * p.nro_personas) - i.stock_actual) AS cantidadAComprar,
+          GREATEST(0, SUM((r.cantidad_base / 5) * p.nro_personas) - i.stock_actual) AS cantidadAComprar,
           i.unidad_medida AS unidad
       FROM planificador p
       JOIN recetas r ON p.plato_id = r.plato_id
